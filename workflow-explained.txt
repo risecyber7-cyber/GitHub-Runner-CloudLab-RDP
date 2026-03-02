@@ -1,0 +1,220 @@
+GitHub Runner CloudLab – Updated Workflow YML Explanation
+Author: deva
+Project: GitHub Runner → Temporary RDP CloudLab
+
+INTRODUCTION
+
+Is document me explain kiya gaya hai ki updated GitHub Actions workflow (.yml file) kaise banaya gaya aur har step kya kaam karta hai.
+
+Goal tha:
+
+Ubuntu runner launch karna
+
+XFCE Desktop install karna
+
+XRDP setup karna
+
+DBUS configure karna
+
+Tailscale se secure remote access enable karna
+
+Services manually start karna (without systemctl)
+
+COMPLETE UPDATED WORKFLOW.YML STRUCTURE
+
+(Example Structure Explanation)
+
+name: CloudLab RDP
+
+on:
+workflow_dispatch:
+
+Explanation:
+
+Workflow manually trigger hoga
+
+Automatic trigger disable rakha gaya stability ke liye
+
+JOB SECTION
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+Explanation:
+
+GitHub runner Ubuntu latest image use karega
+
+Ye temporary VM hoti hai
+
+STEP 1: UPDATE SYSTEM
+
+name: Update System
+run: |
+sudo apt update
+sudo apt upgrade -y
+
+Purpose:
+
+Latest package lists load karna
+
+Security updates apply karna
+
+STEP 2: INSTALL DESKTOP ENVIRONMENT
+
+name: Install XFCE
+run: |
+sudo apt install xfce4 xfce4-goodies -y
+
+Purpose:
+
+Lightweight desktop environment install karna
+
+GitHub runner me GUI support enable karna
+
+Reason for choosing XFCE:
+
+Lightweight
+
+Stable
+
+Low resource usage
+
+STEP 3: INSTALL XRDP
+
+name: Install XRDP
+run: |
+sudo apt install xrdp -y
+
+Purpose:
+
+Remote Desktop Protocol server install karna
+
+Windows MSTSC se connect karne ke liye
+
+STEP 4: INSTALL DBUS
+
+name: Install DBUS
+run: |
+sudo apt install dbus-x11 -y
+
+Purpose:
+
+Desktop session properly start ho
+
+"unable to execute dbus" error fix
+
+STEP 5: CONFIGURE SESSION
+
+name: Configure XFCE Session
+run: |
+echo "dbus-launch startxfce4" > ~/.xsession
+chmod +x ~/.xsession
+
+Purpose:
+
+XRDP ko batana kaunsa desktop launch karna hai
+
+Auto session start karna
+
+STEP 6: INSTALL TAILSCALE
+
+name: Install Tailscale
+run: |
+curl -fsSL https://tailscale.com/install.sh
+ | sh
+sudo tailscale up --authkey ${{ secrets.TS_AUTHKEY }}
+
+Purpose:
+
+Private networking enable karna
+
+Direct public RDP avoid karna
+
+Secure remote access provide karna
+
+Important:
+Authkey GitHub Secrets me store kiya gaya tha.
+
+STEP 7: START XRDP MANUALLY
+
+name: Start XRDP
+run: |
+sudo /usr/sbin/xrdp-sesman &
+sudo /usr/sbin/xrdp &
+
+Reason:
+systemctl GitHub runner me reliable nahi hai.
+Isliye manual daemon start use kiya gaya.
+
+STEP 8: KEEP RUNNER ALIVE
+
+(Optional Step)
+
+name: Keep Alive
+run: |
+sleep 21600
+
+Purpose:
+
+Runner ko 6 hours tak active rakhna
+
+GitHub default timeout avoid karna
+
+Note:
+Free plan me maximum runtime limited hota hai.
+
+FINAL ARCHITECTURE
+
+Windows PC
+↓
+MSTSC (RDP Client)
+↓
+Tailscale Private IP
+↓
+GitHub Runner Ubuntu VM
+↓
+XRDP Server
+↓
+XFCE Desktop Session
+
+WHY MANUAL SERVICE START USED?
+
+GitHub runner:
+
+Full systemd support nahi
+
+systemctl restricted
+
+Background services unstable ho sakte hain
+
+Isliye:
+Manual process-based daemon execution use kiya gaya.
+
+LIMITATIONS OF THIS YML SETUP
+
+Permanent 24/7 server nahi
+
+Reboot ke baad reset
+
+GUI performance limited
+
+Public hosting ke liye recommended nahi
+
+Ye purely learning & experimental CloudLab setup hai.
+
+WHAT THIS WORKFLOW TEACHES
+
+CI runner ko custom lab me convert karna
+
+Linux desktop remote access setup
+
+Service troubleshooting
+
+Networking via Tailscale
+
+Working without systemd
+
+Debugging dependency failures
+
+END OF DOCUMENTATION
