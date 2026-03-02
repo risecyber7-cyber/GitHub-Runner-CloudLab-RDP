@@ -1,0 +1,221 @@
+GitHub Runner CloudLab – Errors & Fixes Documentation
+
+Author: deva
+Project: Converting GitHub Runner into Temporary RDP CloudLab
+Environment: Ubuntu (GitHub Actions Runner)
+
+INTRODUCTION
+
+Is project ka goal tha GitHub runner ko use karke ek temporary CloudLab environment banana jisme:
+
+XFCE Desktop
+
+XRDP
+
+SSH
+
+Tailscale Remote Access
+
+Setup ke dauraan multiple system-level errors aaye. Neeche har error aur uska exact fix documented hai.
+
+ERROR 1: APT LOCK / PERMISSION DENIED
+
+Error Message:
+Could not open lock file /var/lib/dpkg/lock-frontend
+Unable to lock directory /var/lib/apt/lists/
+
+Cause:
+System-level commands normal user se run kiye gaye the.
+
+Fix:
+sudo apt update
+sudo apt upgrade -y
+
+Lesson:
+Linux me package management ke liye root permission required hoti hai.
+
+ERROR 2: systemctl COMMAND NOT FOUND
+
+Error Message:
+sudo: systemctl: command not found
+/bin/sh: systemctl: Permission denied
+
+Cause:
+GitHub runner full systemd support nahi deta.
+
+Fix:
+systemctl use karne ki jagah services manually start ki:
+
+sudo /usr/sbin/xrdp-sesman &
+sudo /usr/sbin/xrdp &
+
+Lesson:
+Har Linux environment me systemctl available nahi hota.
+
+ERROR 3: XRDP BINARY NOT FOUND
+
+Error Message:
+sudo: /usr/sbin/xrdp: command not found
+sudo: /usr/sbin/xrdp-sesman: command not found
+
+Cause:
+XRDP properly install nahi hua tha.
+
+Fix:
+sudo apt remove xrdp -y
+sudo apt install xrdp -y
+
+Verification:
+ls /usr/sbin/xrdp
+ls /usr/sbin/xrdp-sesman
+
+Lesson:
+Installation ke baad binary path verify karna zaroori hai.
+
+ERROR 4: PORT 3389 NOT LISTENING
+
+Check Command:
+ss -tlnp | grep 3389
+
+Result:
+No output
+
+Cause:
+XRDP service running nahi thi.
+
+Fix:
+sudo /usr/sbin/xrdp-sesman &
+sudo /usr/sbin/xrdp &
+
+Recheck:
+ss -tlnp | grep 3389
+
+Lesson:
+RDP troubleshoot karte waqt sabse pehle port listening check karo.
+
+ERROR 5: RDP LOGIN KE BAAD SCREEN DISCONNECT
+
+Symptom:
+Username/password dalte hi session cut ho jata tha.
+
+Cause:
+Desktop session configured nahi tha.
+
+Fix:
+echo startxfce4 > ~/.xsession
+chmod +x ~/.xsession
+
+Lesson:
+XRDP ko desktop environment manually define karna padta hai.
+
+ERROR 6: UNABLE TO EXECUTE DBUS
+
+Symptom:
+Desktop start nahi ho raha tha.
+
+Cause:
+dbus-x11 package missing tha.
+
+Fix:
+sudo apt install dbus-x11 -y
+
+Session update:
+echo "dbus-launch startxfce4" > ~/.xsession
+
+Lesson:
+XFCE ke liye DBUS required hota hai.
+
+ERROR 7: DEPENDENCY FAILED FOR XRDP.SERVICE
+
+Error:
+Dependency failed for xrdp.service
+
+Cause:
+GitHub runner me service dependency handling limited hota hai.
+
+Fix:
+systemctl ignore karke manual daemon start kiya.
+
+Lesson:
+Restricted environments me manual service management zaroori ho sakta hai.
+
+ERROR 8: XRDP INACTIVE (DEAD)
+
+Status:
+Active: inactive (dead)
+
+Cause:
+Service crash due to missing dependencies.
+
+Fix:
+Reinstall + DBUS fix + manual start.
+
+ERROR 9: NETWORK ACCESS ISSUE
+
+Problem:
+Direct public RDP access possible nahi tha.
+
+Solution:
+Tailscale install kiya:
+
+curl -fsSL https://tailscale.com/install.sh
+ | sh
+sudo tailscale up
+
+IP check:
+tailscale ip
+
+Us private IP se RDP connect kiya.
+
+FINAL WORKING STACK
+
+Ubuntu GitHub Runner
+
+XFCE Desktop
+
+XRDP (Manual Start)
+
+DBUS Configured
+
+Tailscale Private Networking
+
+Windows MSTSC Client
+
+IMPORTANT LIMITATIONS
+
+GitHub Runner:
+
+Permanent 24/7 server nahi
+
+Restart ke baad services reset
+
+systemd fully supported nahi
+
+GUI unstable ho sakta hai
+
+This setup is for learning and experimental purposes only.
+
+PROJECT SUMMARY
+
+Total Major Error Categories Faced: 10+
+Total Troubleshooting Attempts: 15+
+
+Key Skills Learned:
+
+Linux permissions
+
+Package management
+
+Manual service management
+
+XRDP architecture
+
+Desktop session debugging
+
+Network troubleshooting
+
+Port verification
+
+Working in restricted environments
+
+END OF DOCUMENTATION
